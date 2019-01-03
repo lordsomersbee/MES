@@ -86,7 +86,7 @@ void Element::calculate_matrix_H(double k)
 	}
 
 	//---------------------------------------------------
-	// Jacobian
+	// Jacobian dx/dksi = (xi, yi) * (dN_dksi, dN_deta)
 
 	double** jacobian = new double*[len];
 	jacobian[0] = new double[len];
@@ -108,16 +108,20 @@ void Element::calculate_matrix_H(double k)
 		jacobian[1][j] = sums[1];
 		jacobian[2][j] = sums[2];
 		jacobian[3][j] = sums[3];
-
-		//Todooooooo
-		this->nodes[0].jacobian = jacobian[0];
-		this->nodes[1].jacobian = jacobian[1];
-		this->nodes[2].jacobian = jacobian[2];
-		this->nodes[3].jacobian = jacobian[3];
-
-
-
 	}
+
+	this->nodes[0].jacobian = new double[4] {jacobian[0][0], jacobian[1][0], jacobian[2][0], jacobian[3][0]};
+	this->nodes[1].jacobian = new double[4] {jacobian[0][1], jacobian[1][1], jacobian[2][1], jacobian[3][1]};
+	this->nodes[2].jacobian = new double[4] {jacobian[0][2], jacobian[1][2], jacobian[2][2], jacobian[3][2]};
+	this->nodes[3].jacobian = new double[4] {jacobian[0][3], jacobian[1][3], jacobian[2][3], jacobian[3][3]};
+	
+	//this->nodes[3].jacobian = jacobian[3];
+
+	//for (int i = 0; i < len; i++)
+	//{
+	//	cout << this->nodes[0].jacobian[i] << "\t";
+	//}
+	//cout << endl;
 
 	//---------------------------------------------------
 	// Det J
@@ -127,6 +131,7 @@ void Element::calculate_matrix_H(double k)
 	{
 		det_J[i] = jacobian[0][i] * jacobian[3][i] - jacobian[1][i] * jacobian[2][i];
 		this->nodes[i].det_J = det_J[i];
+		//cout << det_J[i] << endl;
 	}
 
 	//---------------------------------------------------
@@ -145,10 +150,10 @@ void Element::calculate_matrix_H(double k)
 		jacobian_invert[3][i] = jacobian[0][i] / det_J[i];
 	}
 
-	this->nodes[0].jacobian_invert = jacobian_invert[0];
-	this->nodes[1].jacobian_invert = jacobian_invert[1];
-	this->nodes[2].jacobian_invert = jacobian_invert[2];
-	this->nodes[3].jacobian_invert = jacobian_invert[3];
+	this->nodes[0].jacobian_invert = new double[4]{ jacobian_invert[0][0], jacobian_invert[1][0], jacobian_invert[2][0], jacobian_invert[3][0] };
+	this->nodes[1].jacobian_invert = new double[4]{ jacobian_invert[0][1], jacobian_invert[1][1], jacobian_invert[2][1], jacobian_invert[3][1] };
+	this->nodes[2].jacobian_invert = new double[4]{ jacobian_invert[0][2], jacobian_invert[1][2], jacobian_invert[2][2], jacobian_invert[3][2] };
+	this->nodes[3].jacobian_invert = new double[4]{ jacobian_invert[0][3], jacobian_invert[1][3], jacobian_invert[2][3], jacobian_invert[3][3] };
 
 	//---------------------------------------------------
 	// d_N/d_x and d_N/d_y
@@ -169,6 +174,7 @@ void Element::calculate_matrix_H(double k)
 	//---------------------------------------------------
 	// factors_x - array of matrixes containing "x" factors ( (d_N/d_x)*(d_N/d_x)T * det_J )
 	// factors_y - array of matrixes containing "y" factors ( (d_N/d_y)*(d_N/d_y)T * det_J )
+	// factor_iterator - intergral points
 
 	double*** factors_x = new double**[len];
 	double*** factors_y = new double**[len];
@@ -254,7 +260,8 @@ void Element::calculate_matrix_C(double c, double ro)
 	}
 
 	//---------------------------------------------------
-	//factors {Ni}{Ni}*ro*c*det_J
+	//factors {Ni}{Ni}T*ro*c*det_J
+	//factor_iterator - intergral points
 
 	double*** factors = new double**[len];
 	for (int factor_iterator = 0; factor_iterator < len; factor_iterator++)
@@ -316,6 +323,8 @@ void Element::calculate_BC(double alfa, double ambient_temp)
 	double*** surfaces = new double**[len];
 	double** surfaces_P = new double*[len];
 
+	// factor_iterator - egdes
+	// 0 - bottom edge, anticlockwise rotation 
 	for (int factor_iterator = 0; factor_iterator < len; factor_iterator++)
 	{
 		// calculate Ni for 1 and 2 intergral point
@@ -350,6 +359,7 @@ void Element::calculate_BC(double alfa, double ambient_temp)
 		for (int i = 0; i < len; i++) cout << N2[i] << "\t";
 		cout << endl;*/
 
+		// alfa*{Ni}{Ni}T
 		surfaces[factor_iterator] = new double*[len];
 		for (int i = 0; i < len; i++)
 		{
@@ -361,6 +371,7 @@ void Element::calculate_BC(double alfa, double ambient_temp)
 
 		}
 
+		// alfa*{Ni}*t_ot
 		surfaces_P[factor_iterator] = new double[len];
 		for (int i = 0; i < len; i++)
 		{
